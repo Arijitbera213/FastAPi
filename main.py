@@ -37,7 +37,9 @@ def get_db():
 @app.get("/trades")
 async def get_trades(db: Session = Depends(get_db), limit: Optional[int] = None):
     return db.query(models.Trade).limit(limit).all()
-
+@app.get("/trades_details")
+async def get_tradesDetails(db: Session = Depends(get_db), limit: Optional[int] = None):
+    return db.query(models.TradeDetails).limit(limit).all()
 
 @app.post("/trade")
 async def create_trade(trades: schemas.Trade, db: Session = Depends(get_db)):
