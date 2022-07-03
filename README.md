@@ -74,7 +74,7 @@ Session class is defined using sessionmaker() – a configurable session factory
 
 This is the entire working of database.py 
 
----
+```sh
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -91,7 +91,7 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 Base = declarative_base()
 
----
+```
 
 
 ## Create the database models¶
@@ -101,8 +101,8 @@ Let's now see the file sql_app/models.py.
 Create SQLAlchemy models from the Base class¶
 We will use this Base class we created before to create the SQLAlchemy models.
 
----
-sh
+
+```sh
 from sqlalchemy import Column, Integer, ForeignKey ,String, Float, Boolean,DateTime 
 
 >As known the Column, Integer, ForeignKey ,String, Float, Boolean,DateTime  are the part of data types which are used in SQL as well
@@ -141,7 +141,7 @@ class Trade(Base):
     trade_id = Column(String, primary_key=True, index=True)
     trader = Column(String)
 
----
+```
 
 
 ## Create the Pydantic models¶
@@ -158,7 +158,7 @@ Now let's check the file sql_app/schemas.py.
 
 ---
 
-sh
+```sh
 import datetime as dt
 
 from typing import Optional , List
@@ -189,7 +189,7 @@ class Trade(BaseModel):
 
     trader: str = Field(description="The name of the Trader")
 
----
+```
 
 ## CRUD utils¶
 
@@ -227,7 +227,7 @@ The steps are:
 
 ---
 
-sh
+```sh
 from sqlalchemy.orm import Session
 
 from import models, schemas
@@ -269,8 +269,7 @@ def create_trade_details(db: Session, trade_details: schemas.TradeDetails,trade_
     db.commit()
     db.refresh(db_trade_details)
     return db_trade_details
-
----
+```
 
 ## Main FastAPI app¶
 And now in the file sql_app/main.py let's integrate and use all the other parts we created before.
@@ -281,7 +280,7 @@ In a very simplistic way create the database tables:
 
 ---
 
-sh
+```sh
 from typing import Optional, List
 
 from fastapi import Depends, FastAPI, HTTPException,Request,Response
@@ -356,7 +355,7 @@ async def get_trade_by_instrument_id(instrument_id: str, db: Session = Depends(g
 async def get_trade_by_instrument_name(instrument_name: str, db: Session = Depends(get_db)):
     return db.query(models.Trade).filter(models.Trade.instrument_name == instrument_name).all()
 
----
+```
 
 ## Create a dependency¶
 Now use the SessionLocal class we created in the sql_app/database.py file to create a dependency.
@@ -371,7 +370,7 @@ Our dependency will create a new SQLAlchemy SessionLocal that will be used in a 
 
 ---
 
-sh
+```sh
 from typing import Optional, List
 
 from fastapi import Depends, FastAPI, HTTPException,Request,Response
@@ -458,7 +457,7 @@ async def get_trade_by_instrument_id(instrument_id: str, db: Session = Depends(g
 @app.get("/trade/{instrument_name}/details")
 async def get_trade_by_instrument_name(instrument_name: str, db: Session = Depends(get_db)):
     return db.query(models.Trade).filter(models.Trade.instrument_name == instrument_name).all()
-
+```
 ---
 
 ## Check it¶
@@ -470,9 +469,9 @@ In fact, the code shown here is part of the tests. As most of the code in these 
 
 Then you can run it with Uvicorn:
 
-sh
+```sh
 uvicorn sql_app.main:app --reload
-
+```
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 
 
