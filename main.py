@@ -1,91 +1,84 @@
-from typing import List
-from fastapi import FastAPI, status, HTTPException, Depends
-from database import Base, engine, SessionLocal
+from typing import Optional, List
+
+from fastapi import Depends, FastAPI, HTTPException,Request,Response
 from sqlalchemy.orm import Session
-import models
-import schemas
+import schemas, models # noqa: E402
 
-# Create the database
-Base.metadata.create_all(engine)
+from database import SessionLocal,engine
 
-# Initialize app
+
+
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
 
-# Helper function to get database session
-def get_session():
-    session = SessionLocal()
+
+@app.middleware("http")
+async def db_session_middleware(request: Request, call_next):
+    response = Response("Internal server error", status_code=500)
     try:
-        yield session
+        request.state.db = SessionLocal()
+        response = await call_next(request)
     finally:
-        session.close()
-
-@app.get("/")
-def root():
-    return "todooo"
-
-@app.post("/todo", response_model=schemas.ToDo, status_code=status.HTTP_201_CREATED)
-def create_todo(todo: schemas.ToDoCreate, session: Session = Depends(get_session)):
-
-    # create an instance of the ToDo database model
-    tododb = models.ToDo(buySellIndicator = todo.buySellIndicator,price = todo.price,quantity = todo.quantity)
+        request.state.db.close()
+    return response
 
 
-    # add it to the session and commit it
-    session.add(tododb)
-    session.commit()
-    session.refresh(tododb)
 
-    # return the todo object
-    return tododb
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.get("/todo/{id}", response_model=schemas.ToDo)
-def read_todo(id: int, session: Session = Depends(get_session)):
 
-    # get the todo item with the given id
-    todo = session.query(models.ToDo).get(id)
+@app.get("/trades")
+async def get_trades(db: Session = Depends(get_db), limit: Optional[int] = None):
+    return db.query(models.Trade).limit(limit).all()
 
-    # check if todo item with given id exists. If not, raise exception and return 404 not found response
-    if not todo:
-        raise HTTPException(status_code=404, detail=f"todo item with id {id} not found")
 
-    return todo
+@app.post("/trade")
+async def create_trade(trades: schemas.Trade, db: Session = Depends(get_db)):
+    db_trade=db.query(models.Trade).filter(models.Trade.trade_id == trades.trade_id).first()
+    if db_trade:
+        raise HTTPException(status_code=400, detail="Trade already exists")
+    new_trade = models.Trade(trade_id=trades.trade_id, trader=trades.trader, asset_class=trades.asset_class,
+                             counterparty=trades.counterparty, trade_date_time=trades.trade_date_time,
+                             instrument_id=trades.instrument_id, instrument_name=trades.instrument_name)
+    db.add(new_trade)
+    db.commit()
+    db.refresh(new_trade)
+    return new_trade
 
-@app.put("/todo/{id}", response_model=schemas.ToDo)
-def update_todo(id: int, task: str, session: Session = Depends(get_session)):
+@app.post("/trade_details/{id}")
+async def create_trade_details(trade_details: schemas.TradeDetails, id: str, db: Session = Depends(get_db)):
+    new_trade_details = models.TradeDetails(id=id, buySellIndicator=trade_details.buySellIndicator,
+                                            price=trade_details.price, quantity=trade_details.quantity)
+    db.add(new_trade_details)
+    db.commit()
+    db.refresh(new_trade_details)
+    return new_trade_details
 
-    # get the todo item with the given id
-    todo = session.query(models.ToDo).get(id)
+@app.get("/trade/{trade_id}")
+async def get_trade_by_id(trade_id: str, db: Session = Depends(get_db)):
+    return db.query(models.Trade).filter(models.Trade.trade_id == trade_id).first()
+    
+@app.get("/trade/{counterparty}/details")
+async def get_trade_by_counterparty(counterparty: str, db: Session = Depends(get_db)):
+    return db.query(models.Trade).filter(models.Trade.counterparty == counterparty).all()
 
-    # update todo item with the given task (if an item with the given id was found)
-    if todo:
-        todo.task = task
-        session.commit()
+@app.get("/trade/{trader}/details")
+async def get_trade_by_trader(trader: str, db: Session = Depends(get_db)):
+    return db.query(models.Trade).filter(models.Trade.trader == trader).all()
 
-    # check if todo item with given id exists. If not, raise exception and return 404 not found response
-    if not todo:
-        raise HTTPException(status_code=404, detail=f"todo item with id {id} not found")
 
-    return todo
+@app.get("/trade/{instrument_id}/details")
+async def get_trade_by_instrument_id(instrument_id: str, db: Session = Depends(get_db)):
+    return db.query(models.Trade).filter(models.Trade.instrument_id == instrument_id).all()
 
-@app.delete("/todo/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_todo(id: int, session: Session = Depends(get_session)):
+@app.get("/trade/{instrument_name}/details")
+async def get_trade_by_instrument_name(instrument_name: str, db: Session = Depends(get_db)):
+    return db.query(models.Trade).filter(models.Trade.instrument_name == instrument_name).all()
 
-    # get the todo item with the given id
-    todo = session.query(models.ToDo).get(id)
-
-    # if todo item with given id exists, delete it from the database. Otherwise raise 404 error
-    if todo:
-        session.delete(todo)
-        session.commit()
-    else:
-        raise HTTPException(status_code=404, detail=f"todo item with id {id} not found")
-
-    return None
-
-@app.get("/todo", response_model = List[schemas.ToDo])
-def read_todo_list(session: Session = Depends(get_session)):
-
-    # get all todo items
-    todo_list = session.query(models.ToDo).all()
-
-    return todo_list
