@@ -1,6 +1,5 @@
 # FastAPi_Steeleye
 
-[![N|Solid](https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png)](https://fastapi.tiangolo.com/)
 
 
 ## Installation using cmd
