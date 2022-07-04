@@ -50,6 +50,20 @@ maxPrice	The maximum value for the tradeDetails.price field.
 minPrice	The minimum value for the tradeDetails.price field.
 start	The minimum date for the tradeDateTime field.
 tradeType	The tradeDetails.buySellIndicator is a BUY or SELL
+## Advanced filtering
+The users would now like the ability to filter trades. Your endpoint for fetching a list of trades will need to support filtering using the following optional query parameters:
+
+Parameter	Description
+assetClass	Asset class of the trade.
+end	The maximum date for the tradeDateTime field.
+maxPrice	The maximum value for the tradeDetails.price field.
+minPrice	The minimum value for the tradeDetails.price field.
+start	The minimum date for the tradeDateTime field.
+tradeType	The tradeDetails.buySellIndicator is a BUY or SELL
+All maximum and minimum fields are inclusive (e.g. minPrice=2&maxPrice=10 will return 2 <= tradeDetails.price <= 10).
+
+
+## Implement support for pagination on the list of trades.
 
 ## Create the SQLAlchemy parts¶
 Let's refer to the file sql_app/database.py.
@@ -502,6 +516,10 @@ It will look like this:
 ![image](https://user-images.githubusercontent.com/56600106/177052482-2cec591b-c96c-42f5-955e-d41396cab302.png)
 ![image](https://user-images.githubusercontent.com/56600106/177052491-ee764976-6fea-4cf1-87e0-607d336d753b.png)
 ![image](https://user-images.githubusercontent.com/56600106/177052496-82d6e4da-9d62-49be-99c8-a6b8f64c6156.png)
+![image](https://user-images.githubusercontent.com/56600106/177081412-9289c1ba-09e0-4421-a698-ffcab2b6f880.png)
+![image](https://user-images.githubusercontent.com/56600106/177081460-2107c10f-0286-4063-b227-0d1596989a0b.png)
+![image](https://user-images.githubusercontent.com/56600106/177081477-bbeab382-2881-4ad5-a3d5-ce372878254f.png)
+![image](https://user-images.githubusercontent.com/56600106/177081494-bf825a1a-98e0-4825-813f-62c5decc71f3.png)
 
 
 
