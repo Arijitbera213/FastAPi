@@ -1,11 +1,14 @@
 from typing import Optional, List
 
-from fastapi import Depends, FastAPI, HTTPException,Request,Response
+from fastapi import Depends, FastAPI, HTTPException,Request,Response,Query
 from sqlalchemy.orm import Session
 import schemas, models # noqa: E402
-
+import datetime as dt
+from datetime import datetime
+from datetime import *
 from database import SessionLocal,engine
 
+from sqlalchemy import desc
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -84,3 +87,23 @@ async def get_trade_by_instrument_id(instrument_id: str, db: Session = Depends(g
 async def get_trade_by_instrument_name(instrument_name: str, db: Session = Depends(get_db)):
     return db.query(models.Trade).filter(models.Trade.instrument_name == instrument_name).all()
 
+@app.get("/trade/{assetClass}/{end}/{maxPrice}/{minPrice}/{start}/{tradetype}")
+def Advanced_filtering(assetClass: Optional[str], end: Optional[dt.datetime], maxPrice: Optional[float], minPrice: Optional[float], start: Optional[dt.datetime], tradetype: Optional[str], db: Session = Depends(get_db)):
+    return db.query(models.Trade).filter(models.Trade.asset_class == assetClass).filter(models.Trade.trade_date_time >= start).filter(models.Trade.trade_date_time <= end).filter(models.TradeDetails.price <= maxPrice).filter(models.TradeDetails.price >= minPrice).filter(models.Trade.trader == tradetype).all()
+
+@app.get("/tradequantity/")
+def SortingDESC( db: Session = Depends(get_db)):
+    return db.query(models.TradeDetails).order_by(models.TradeDetails.quantity.desc())
+
+
+def get_data(db: Session, page: int = 0, limit: int = 50):
+    # Note not the best option for large data sets.
+    try:
+        data = db.query(models.Trade).offset(page).limit(limit).all()
+        return data
+    except Exception as e:
+        logger.exception(e)
+        raise HTTPException(status_code=500, detail='There was an error while processing your request.')
+@app.get('/pagination')
+def Pagination(db: Session = Depends(get_db), page: int = 0, limit: int = 50):
+    return get_data(db=db, page=page, limit=limit)
